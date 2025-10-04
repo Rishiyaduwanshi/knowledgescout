@@ -41,6 +41,7 @@ export const uploadDocs = async (req, res, next) => {
       filePath: destPath,
       fileName: req.file.originalname,
       timestamp,
+      status : 'pending'
     });
 
     fs.writeFileSync(queueFile, JSON.stringify(queue, null, 2));

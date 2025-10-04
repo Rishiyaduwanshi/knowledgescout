@@ -31,10 +31,15 @@ const llmConfig = {
   GROQ_API_KEY: process.env.GROQ_API_KEY ?? 'Groq api key not provided',
   GROQ_MODEL: process.env.GROQ_MODEL ?? 'Groq model not provided',
 
-  // OpenAI Config (Backup)
   HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY ?? 'Huggingface api key not provided',
   HUGGINGFACE_MODEL: process.env.HUGGINGFACE_MODEL ?? 'Huggingface model not provided',
 };
+
+// ====== DB Config ======
+const dbConfig = {
+  QDRANT_URL : process.env.QDRANT_URL,
+  QDRANT_COLLECTION_NAME : process.env.QDRANT_COLLECTION_NAME,
+}
 
 // ====== JWT Config ======
 const jwtConfig = {
@@ -79,5 +84,6 @@ export const config = Object.freeze({
   ...jwtConfig,
   ...rateLimitConfig,
   ...llmConfig,
+  ...dbConfig,
   ALLOWED_ORIGINS,
 });
