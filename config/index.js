@@ -19,6 +19,8 @@ const appConfig = {
   APP_URL: process.env.APP_URL ?? `http://localhost:${PORT}`,
   APP_NAME: process.env.APP_NAME ?? 'boiler',
   VERSION: version,
+  QUEUE_FILE : process.env.QUEUE_FILE,
+  UPLOAD_DIR : process.env.UPLOAD_DIR
 };
 
 // ====== LLM Config ======
