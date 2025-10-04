@@ -10,8 +10,8 @@ const router = Router();
 
 // Auth routes
 router.post('/signup', signup);
-router.post('/login', signin);
+router.post('/signin', signin);
 router.post('/refresh-token', refreshToken);
-router.post('/logout', signout);
+router.post('/signout', signout);
 
 export default router;

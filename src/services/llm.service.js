@@ -14,21 +14,22 @@ let llm;
 try {
   switch (MODEL_PROVIDER) {
     case 'huggingface': {
-      const { HuggingFaceInference } = await import("@langchain/community/llms/hf")
-      console.log(MODEL_PROVIDER, HUGGINGFACE_API_KEY, HUGGINGFACE_MODEL)
+      const { HuggingFaceInference } = await import(
+        '@langchain/community/llms/hf'
+      );
+      console.log(MODEL_PROVIDER, HUGGINGFACE_API_KEY, HUGGINGFACE_MODEL);
       llm = new HuggingFaceInference({
         apiKey: HUGGINGFACE_API_KEY,
         model: HUGGINGFACE_MODEL,
         temperature: 0.3,
         maxOutputTokens: 2048,
-        provider : 'huggingface'
+        provider: 'huggingface',
       });
       break;
     }
 
     case 'groq': {
       const { ChatGroq } = await import('@langchain/groq');
-      const { GroqEm } = await import('@langchain/groq');
       llm = new ChatGroq({
         apiKey: GROQ_API_KEY,
         model: GROQ_MODEL || 'gpt-3.5-turbo',
@@ -38,9 +39,11 @@ try {
     }
 
     default:
-      throw new Error(`Unsupported MODEL_PROVIDER: ${MODEL_PROVIDER}`);
+      console.log("Model PRo----",MODEL_PROVIDER)
+      throw new AppError({message: `Unsupported MODEL_PROVIDER: ${MODEL_PROVIDER}`});
   }
 } catch (error) {
+  console.table(error)
   throw new AppError({ message: `LLM load failed: ${error.message}` });
 }
 

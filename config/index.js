@@ -13,11 +13,11 @@ const PORT = process.env.PORT ?? 4040;
 
 // ====== App Config ======
 const appConfig = {
-  MONGO_URI: process.env.MONGO_URI ?? 'mongodb://localhost:27017/boiler',
+  MONGO_URI: process.env.MONGO_URI ,
   PORT,
-  NODE_ENV: process.env.NODE_ENV ?? 'production',
+  NODE_ENV: process.env.NODE_ENV,
   APP_URL: process.env.APP_URL ?? `http://localhost:${PORT}`,
-  APP_NAME: process.env.APP_NAME ?? 'boiler',
+  APP_NAME: process.env.APP_NAME ,
   VERSION: version,
   QUEUE_FILE : process.env.QUEUE_FILE,
   UPLOAD_DIR : process.env.UPLOAD_DIR
@@ -25,7 +25,7 @@ const appConfig = {
 
 // ====== LLM Config ======
 const llmConfig = {
-  MODEL_PROVIDER: process.env.MODEL_PROVIDER ?? 'No model provider is provided',
+  MODEL_PROVIDER: process.env.MODEL_PROVIDER ??  new AppError({message : "No model provider is provided"}),
 
   // Groq Config
   GROQ_API_KEY: process.env.GROQ_API_KEY ?? 'Groq api key not provided',
@@ -37,6 +37,7 @@ const llmConfig = {
 
 // ====== DB Config ======
 const dbConfig = {
+  MONGO_URI: process.env.MONGO_URI ?? 'mongodb://localhost:27017/knowledgescout',
   QDRANT_URL : process.env.QDRANT_URL,
   QDRANT_COLLECTION_NAME : process.env.QDRANT_COLLECTION_NAME,
 }

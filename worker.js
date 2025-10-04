@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import mongoose from 'mongoose';
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
 import { DocxLoader } from '@langchain/community/document_loaders/fs/docx';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
@@ -7,14 +8,19 @@ import { QdrantClient } from '@qdrant/js-client-rest';
 import { config } from './config/index.js';
 import { getLogger } from './src/utils/errorLogger.js';
 import embeddingModel from './src/services/embedding.service.js';
+import Doc from './src/models/doc.model.js';
+import { AppError } from './src/utils/appError.js';
+
 const logger = getLogger('logs/worker.log');
+
+await mongoose.connect(config.MONGO_URI);
+logger.info('Connected to MongoDB (worker)');
 
 const qdrant = new QdrantClient({
   url: config.QDRANT_URL,
   apiKey: config.QDRANT_API_KEY,
 });
 
-// Load document (PDF/DOCX)
 const loadDocument = async (filePath) => {
   const ext = path.extname(filePath).toLowerCase();
   let loader;
@@ -24,81 +30,101 @@ const loadDocument = async (filePath) => {
   return loader.load();
 };
 
-// Process queue
 export const processQueue = async () => {
   if (!fs.existsSync(config.QUEUE_FILE)) return;
 
-  const queueData = JSON.parse(fs.readFileSync(config.QUEUE_FILE, 'utf-8'));
+  let queueData = JSON.parse(fs.readFileSync(config.QUEUE_FILE, 'utf-8'));
   if (!queueData.length) return;
 
-  for (let i = 0; i < 1; i++) {
+  for (let i = 0; i < queueData.length; i++) {
     const item = queueData[i];
-    const { userID, filePath, fileName, timestamp } = item;
+    const { docId, userId, filePath, fileName, timestamp } = item;
 
     try {
+      const docRecord = await Doc.findById(docId);
+      if (!docRecord) throw new Error('Doc record not found in DB');
+
       logger.info(`Processing: ${fileName}`);
+      await Doc.findByIdAndUpdate(docId, { status: 'processing' });
 
-      // Absolute path
       const normalizedPath = path.resolve(filePath);
-
-      console.log("normalizedPath-------------------", normalizedPath)
       if (!fs.existsSync(normalizedPath)) {
         throw new Error(`File not found at path: ${normalizedPath}`);
       }
 
-      // Load document
       const docs = await loadDocument(normalizedPath);
 
-      // Split into chunks
+      if (!docs || !docs.length || !docs[0].pageContent?.trim()) {
+        throw new AppError({
+          message:
+            'Document contains no readable text. Possibly image-based PDF.',
+        });
+      }
+
       const splitter = new RecursiveCharacterTextSplitter({
         chunkSize: 1000,
         chunkOverlap: 200,
       });
-      console.log("docs-------", docs)
       const textChunks = await splitter.splitDocuments(docs);
 
-      console.log("textChunks1------------",textChunks)
-
-      // Generate embeddings & insert into Qdrant
       const points = [];
+      console.log(
+        'textChunks--------------------> ',
+        JSON.stringify(textChunks, null, 2)
+      );
+      let metadata = null;
       for (const chunk of textChunks) {
+
         const vector = await embeddingModel.embedQuery(chunk.pageContent);
+        metadata = {
+          totalPages: chunk.metadata.pdf.totalPages,
+          pageNo: chunk.metadata.loc.pageNumber,
+          from: chunk.metadata.loc.lines.from,
+          to: chunk.metadata.loc.lines.to,
+        };
         points.push({
-          id: timestamp,
-          vector,
-          payload: { userID, fileName, timestamp },
+          id: Date.now(),
+          vector, 
+          payload: {
+            userId,
+            fileName,
+            filePath: normalizedPath,
+            docId,
+            metadata,
+            pageContent : chunk.pageContent,
+          },
         });
       }
 
-      console.log("------------------> ",config.QDRANT_COLLECTION_NAME)
-      console.log(points)
-      const opeartionInfo = await qdrant.upsert(config.QDRANT_COLLECTION_NAME,{
+      await qdrant.upsert(config.QDRANT_COLLECTION_NAME, {
         wait: true,
-        points : points,
+        points,
       });
 
-      console.log(opeartionInfo)
+      await Doc.findByIdAndUpdate(docId, { status: 'completed', error: null, metadata });
 
       logger.info(
-        `Processed ${fileName} for user ${userID} (${textChunks.length} chunks)`
+        `✅ Processed ${fileName} for user ${userId} (${textChunks.length} chunks)`
       );
 
-      // Remove processed item from queue
       queueData.splice(i, 1);
-      fs.writeFileSync(config.QUEUE_FILE, JSON.stringify(queueData, null, 2));
       i--;
+      fs.writeFileSync(config.QUEUE_FILE, JSON.stringify(queueData, null, 2));
     } catch (err) {
-      logger.error(`Error processing file: ${fileName} - ${err.stack}`);
-      console.error(err.stack);
+      logger.error(`❌ Error processing ${fileName}: ${err.message}`);
+      console.error(err);
+
+      await Doc.findByIdAndUpdate(item.docId, {
+        status: 'failed',
+        error: err.message,
+      });
     }
   }
 };
 
-// Worker interval
 let isProcessing = false;
 
 const startWorker = async () => {
-  // Note: collection is already created via migration
   setInterval(async () => {
     if (isProcessing) return;
     isProcessing = true;
@@ -110,5 +136,4 @@ const startWorker = async () => {
   }, 3000);
 };
 
-// startWorker();
-processQueue()
+await processQueue();

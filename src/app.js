@@ -30,7 +30,7 @@ const api = express.Router();
 app.use('/', indexRoutes);
 api.use('/auth', authRoutes);
 api.use('/docs', docRoutes);
-api.use('/llm', llmRoutes);
+api.use('/ask', llmRoutes);
 
 app.use(`/api/v${config.VERSION.split('.')[0]}`, api);
 

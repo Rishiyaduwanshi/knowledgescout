@@ -3,16 +3,16 @@ import path from 'path';
 import { BadRequestError } from '../utils/appError.js';
 import appResponse from '../utils/appResponse.js';
 import { config } from '../../config/index.js';
+import Doc from '../models/doc.model.js';
 
 export const uploadDocs = async (req, res, next) => {
   try {
-    const userID = req.body.userID;
-    if (!userID) throw new BadRequestError('User Id is required');
-
+    const userId = req.user.id;
+    if (!userId) throw new BadRequestError('User Id is required');
     if (!req.file) throw new BadRequestError('File is required');
 
     const timestamp = Date.now();
-    const userDir = path.join(config.UPLOAD_DIR, userID);
+    const userDir = path.join(config.UPLOAD_DIR, userId);
 
     if (!fs.existsSync(userDir)) {
       fs.mkdirSync(userDir, { recursive: true });
@@ -23,12 +23,19 @@ export const uploadDocs = async (req, res, next) => {
 
     fs.renameSync(req.file.path, destPath);
 
+    const newDoc = await Doc.create({
+      userId : req?.user?.id,
+      fileName: req?.file?.originalname,
+      filePath: destPath,
+      status: 'pending',
+    });
+
     const queueFile = config.QUEUE_FILE;
 
     let queue = [];
     if (fs.existsSync(queueFile)) {
       try {
-        const data = fs.readFileSync(queueFile, 'utf-8');
+        const data = fs.readFileSync(queueFile, 'utf-8') || [];
         queue = data ? JSON.parse(data) : [];
       } catch (e) {
         console.error('Queue file corrupted, resetting...', e);
@@ -37,17 +44,19 @@ export const uploadDocs = async (req, res, next) => {
     }
 
     queue.push({
-      userID,
+      docId : newDoc._id,
+      userId : req?.user?.id,
       filePath: destPath,
       fileName: req.file.originalname,
       timestamp,
-      status : 'pending'
+      status: 'pending',
     });
 
     fs.writeFileSync(queueFile, JSON.stringify(queue, null, 2));
 
     return appResponse(res, {
       message: `${req.file.originalname} uploaded and queued for processing.`,
+      data : newDoc
     });
   } catch (err) {
     next(err);
