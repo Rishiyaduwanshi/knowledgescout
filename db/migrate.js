@@ -12,11 +12,10 @@ const migrate = async () => {
   try {
     const exists = await client.collectionExists(config.QDRANT_COLLECTION_NAME);
 
-    if (exists) {
+    if ( exists.exists ) {
       console.log(`Collection '${config.QDRANT_COLLECTION_NAME}' already exists`);
     } else {
-      await client.createCollection({
-        collection_name: config.QDRANT_COLLECTION_NAME,
+      await client.createCollection(config.QDRANT_COLLECTION_NAME, {
         vectors: {
           size: 768,
           distance: 'Cosine',

@@ -68,10 +68,6 @@ export const processQueue = async () => {
       const textChunks = await splitter.splitDocuments(docs);
 
       const points = [];
-      console.log(
-        'textChunks--------------------> ',
-        JSON.stringify(textChunks, null, 2)
-      );
       let metadata = null;
       for (const chunk of textChunks) {
 

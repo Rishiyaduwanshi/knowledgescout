@@ -8,9 +8,9 @@ const connectQdrant = async () => {
       apiKey: config.QDRANT_API_KEY,
     });
 
-    const health = await qdrant.getHealthCheck();
+    const health = await qdrant._openApiClient.healthz();
 
-    if (health.status === "ok") {
+    if (health.ok) {
       console.log("Qdrant DB connected successfully ✅");
     } else {
       console.error("Qdrant health check failed ❌", health);
