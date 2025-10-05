@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, MessageCircle, FileText, Loader, Bot, User, Copy, RefreshCw } from 'lucide-react';
+import { Send, MessageCircle, FileText, Loader, Bot, User, Copy, RefreshCw, ExternalLink } from 'lucide-react';
 import { askAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function AskPage() {
   const [query, setQuery] = useState('');
@@ -199,7 +201,27 @@ export default function AskPage() {
                             }`}>
                               <div className="card-body py-2 px-3">
                                 <div className="message-content">
-                                  {message.content}
+                                  {message.type === 'bot' && !message.error ? (
+                                    <div className="markdown-content">
+                                      <ReactMarkdown 
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                          p: ({children}) => <p className="mb-2">{children}</p>,
+                                          ul: ({children}) => <ul className="mb-2 ps-3">{children}</ul>,
+                                          ol: ({children}) => <ol className="mb-2 ps-3">{children}</ol>,
+                                          li: ({children}) => <li className="mb-1">{children}</li>,
+                                          strong: ({children}) => <strong className="fw-bold">{children}</strong>,
+                                          em: ({children}) => <em className="fst-italic">{children}</em>,
+                                          code: ({children}) => <code className="bg-dark text-primary px-1 rounded">{children}</code>,
+                                          pre: ({children}) => <pre className="bg-dark p-2 rounded border">{children}</pre>,
+                                        }}
+                                      >
+                                        {message.content}
+                                      </ReactMarkdown>
+                                    </div>
+                                  ) : (
+                                    message.content
+                                  )}
                                 </div>
                                 
                                 {/* Sources and Metadata for bot messages */}
@@ -209,13 +231,45 @@ export default function AskPage() {
                                       <FileText size={14} className="me-1" />
                                       Sources ({message.sources.length}):
                                     </small>
-                                    {message.sources.map((source, index) => (
-                                      <div key={index} className="mb-1">
-                                        <small className="badge bg-secondary me-1">
-                                          {source.fileName || `Document ${index + 1}`}
-                                        </small>
+                                    <div className="d-flex flex-wrap gap-1">
+                                      {message.sources.map((source, index) => (
+                                        <button
+                                          key={index}
+                                          className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
+                                          onClick={() => {
+                                            if (source.documentId) {
+                                              window.open(`/docs/${source.documentId}`, '_blank');
+                                            } else {
+                                              toast.info('Document preview not available');
+                                            }
+                                          }}
+                                          title={`Click to view: ${source.fileName || `Document ${index + 1}`}`}
+                                        >
+                                          <FileText size={12} />
+                                          <span className="small">
+                                            {source.fileName || `Document ${index + 1}`}
+                                          </span>
+                                          <ExternalLink size={10} />
+                                        </button>
+                                      ))}
+                                    </div>
+                                    
+                                    {/* Show source content preview if available */}
+                                    {message.sources.some(s => s.content) && (
+                                      <div className="mt-2">
+                                        <small className="text-muted d-block mb-1">Content excerpts:</small>
+                                        {message.sources.filter(s => s.content).map((source, index) => (
+                                          <div key={index} className="small bg-dark p-2 rounded mb-1 border-start border-info border-3">
+                                            <div className="text-info mb-1 fw-bold">
+                                              {source.fileName}:
+                                            </div>
+                                            <div className="text-light">
+                                              "{source.content.substring(0, 150)}..."
+                                            </div>
+                                          </div>
+                                        ))}
                                       </div>
-                                    ))}
+                                    )}
                                   </div>
                                 )}
 
