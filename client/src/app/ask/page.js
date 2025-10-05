@@ -237,8 +237,9 @@ export default function AskPage() {
                                           key={index}
                                           className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
                                           onClick={() => {
-                                            if (source.documentId) {
-                                              window.open(`/docs/${source.documentId}`, '_blank');
+                                            if (source.fileName) {
+                                              // Direct PDF serve from static uploads folder
+                                              window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3030'}/uploads/${source.fileName}`, '_blank');
                                             } else {
                                               toast.info('Document preview not available');
                                             }

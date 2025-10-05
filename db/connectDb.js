@@ -4,9 +4,10 @@ import { config } from '../config/index.js';
 const connectDb = async () => {
   try {
     const connection = await mongoose.connect(config.MONGO_URI);
+    console.log(connection.connection)
     console.log(
       'Database connected successfully 🥳 on',
-      connection.connection.host
+      connection.connections.host
     );
   } catch (error) {
     console.error('Database connection error 😢', error);

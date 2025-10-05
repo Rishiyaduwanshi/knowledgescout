@@ -18,6 +18,8 @@ app.use(rateLimit(config.GLOBAL_RATE_LIMIT_CONFIG));
 app.use(rateLimit(config.PER_IP_RATE_LIMIT_CONFIG));
 app.use(express.json());
 
+app.use('/uploads', express.static('uploads'));
+
 // Routes
 import indexRoutes from './routes/index.js';
 import authRoutes from './routes/auth.routes.js';
