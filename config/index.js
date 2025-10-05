@@ -39,6 +39,7 @@ const llmConfig = {
 const dbConfig = {
   MONGO_URI: process.env.MONGO_URI ?? 'mongodb://localhost:27017/knowledgescout',
   QDRANT_URL : process.env.QDRANT_URL,
+  QDRANT_API_KEY : process.env.QDRANT_API_KEY,
   QDRANT_COLLECTION_NAME : process.env.QDRANT_COLLECTION_NAME,
 }
 
