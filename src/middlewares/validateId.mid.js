@@ -4,15 +4,15 @@ import { BadRequestError } from '../utils/appError.js';
 export const validateObjectId = (req, _, next) => {
   try {
     const possibleIds = [
-      req.params.id,
-      req.params.userId,
-      req.params.docId,
-      req.query.id,
-      req.query.userId,
-      req.query.docId,
-      req.body.id,
-      req.body.userId,
-      req.body.docId,
+      req.params?.id,
+      req.params?.userId,
+      req.params?.docId,
+      req.query?.id,
+      req.query?.userId,
+      req.query?.docId,
+      req.body?.id,
+      req.body?.userId,
+      req.body?.docId,
       req.user?.id,
     ];
 
