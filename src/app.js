@@ -23,14 +23,22 @@ import indexRoutes from './routes/index.js';
 import authRoutes from './routes/auth.routes.js';
 import llmRoutes from './routes/llm.route.js';
 import docRoutes from './routes/doc.route.js';
-
+import indexApiRoutes from './routes/index.route.js';
+import systemRoutes from './routes/system.route.js';
+import wellKnownRoutes from './routes/wellknown.route.js';
 
 const api = express.Router();
 
+// System routes (not versioned)
 app.use('/', indexRoutes);
+app.use('/.well-known', wellKnownRoutes);
+
+// API routes (versioned)
 api.use('/auth', authRoutes);
 api.use('/docs', docRoutes);
 api.use('/ask', llmRoutes);
+api.use('/index', indexApiRoutes);
+api.use('/', systemRoutes); // health and _meta
 
 app.use(`/api/v${config.VERSION.split('.')[0]}`, api);
 

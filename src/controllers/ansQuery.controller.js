@@ -6,6 +6,7 @@ import { loadQAChain } from 'langchain/chains';
 import { Document } from 'langchain/document';
 import llm from '../services/llm.service.js';
 import appResponse from '../utils/appResponse.js';
+import { getCachedQuery, setCachedQuery } from '../utils/queryCache.js';
 
 const qdrant = new QdrantClient({
   url: config.QDRANT_URL,
@@ -14,11 +15,21 @@ const qdrant = new QdrantClient({
 
 export const answerQuery = async (req, res, next) => {
   try {
-    const { query, topK } = req.body;
-    console.table(req.user);
-    console.table(req.user.id);
+    const { query, k, topK } = req.body;
     const userId = req.user.id;
+    const limit = k || topK || 5;
+    
     if (!query) throw new BadRequestError('query is required');
+    
+    // Check cache first
+    const cacheKey = `${userId}:${query.toLowerCase().trim()}:${limit}`;
+    const cachedResult = getCachedQuery(cacheKey);
+    if (cachedResult) {
+      return appResponse(res, {
+        message: 'Query answered successfully (cached)',
+        data: cachedResult
+      });
+    }
 
     // 1️⃣ Embed query
     const queryVector = await embeddingModel.embedQuery(query);
@@ -30,9 +41,9 @@ export const answerQuery = async (req, res, next) => {
     // 2️⃣ Retrieve top-k chunks from Qdrant
     const searchResult = await qdrant.query(config.QDRANT_COLLECTION_NAME, {
       query: queryVector,
-      limit: topK,
+      limit: limit,
       with_payload: true,
-      filter: { must: [{ key: 'userId', match: { value: userId } }] },
+      filter: { must: [{ key: 'userId', match: { value: userId.toString() } }] },
     });
 
     if (!searchResult.points.length) {
@@ -69,20 +80,32 @@ export const answerQuery = async (req, res, next) => {
     const chain = loadQAChain(llm);
     const answer = await chain.call({ input_documents: docs, question: query });
 
+    const responseData = {
+      answer: answer.text,
+      sources: docs.map((d) => ({
+        fileName: d.metadata.fileName,
+        docId: d.metadata.docId,
+        filePath: d.metadata.filePath,
+        totalPages: d.metadata.totalPages,
+        pageNo: d.metadata.pageNo,
+        from: d.metadata.from,
+        to: d.metadata.to,
+        // Remove duplicate fields from spread
+        ...(d.metadata && Object.fromEntries(
+          Object.entries(d.metadata).filter(([key]) => 
+            !['fileName', 'docId', 'filePath', 'totalPages', 'pageNo', 'from', 'to'].includes(key)
+          )
+        ))
+      })),
+      cached: false
+    };
+
+    // Cache the result
+    setCachedQuery(cacheKey, responseData);
+
     appResponse(res, {
-      data: {
-        answer: answer.text,
-        sources: docs.map((d) => ({
-          fileName: d.metadata.fileName,
-          docId: d.metadata.docId,
-          filePath: d.metadata.filePath,
-          totalPages: d.metadata.totalPages,
-          pageNo: d.metadata.pageNo,
-          from: d.metadata.from,
-          to: d.metadata.to,
-          ...d.metadata
-        })),
-      },
+      message: 'Query answered successfully',
+      data: responseData
     });
   } catch (err) {
     next(err);
