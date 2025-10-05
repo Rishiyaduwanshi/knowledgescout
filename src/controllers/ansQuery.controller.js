@@ -18,51 +18,52 @@ export const answerQuery = async (req, res, next) => {
     console.table(req.user);
     console.table(req.user.id);
     const userId = req.user.id;
-    if (!query)
-      throw new BadRequestError('query is required');
+    if (!query) throw new BadRequestError('query is required');
 
     // 1️⃣ Embed query
     const queryVector = await embeddingModel.embedQuery(query);
 
-    console.log("i am here 1-------")
-    
+    console.log('qury vetor -> ', queryVector);
+
+    console.log('i am here 1-------');
+
     // 2️⃣ Retrieve top-k chunks from Qdrant
     const searchResult = await qdrant.query(config.QDRANT_COLLECTION_NAME, {
       query: queryVector,
       limit: topK,
-      with_payload : true,
+      with_payload: true,
       filter: { must: [{ key: 'userId', match: { value: userId } }] },
     });
-    console.log("i am here 2-------")
 
-    console.log("searchResult=====>", searchResult)
+    if (!searchResult.points.length) {
+      console.log('inside this ----------> ');
+      console.log(typeof searchResult);
 
-    if (!searchResult.length) {
       return appResponse(res, {
         message: 'No relevant answer found',
         data: { answer: 'No relevant documents found.', sources: [] },
       });
     }
 
-    console.table("searchResult---------------", JSON.stringify(searchResult, null, 2))
+    const docs = searchResult.points.map((hit) => {
+      console.log("Hit payload:", JSON.stringify(hit.payload, null, 2));
+      return new Document({
+        pageContent: hit.payload.pageContent || hit.payload.text || 'No content available',
+        metadata: {
+          fileName: hit.payload.fileName,
+          docId: hit.payload.docId,
+          filePath: hit.payload.filePath,
+          totalPages: hit.payload.metadata?.totalPages,
+          pageNo: hit.payload.metadata?.pageNo,
+          from: hit.payload.metadata?.from,
+          to: hit.payload.metadata?.to,
+          // Include any other metadata fields
+          ...hit.payload.metadata
+        },
+      });
+    });
 
-    const docs = searchResult.points.map(
-      (hit) =>
-        new Document({
-          pageContent: hit.payload.pageContent || hit.payload.text,
-          metadata: {
-            fileName: hit.payload.fileName,
-            docId: hit.payload.docId,
-            filePath: hit.payload.filePath,
-            totalPages : hit.payload.metadata.totalPages, 
-            pageNo : hit.payload.metadata.pageNo,
-            from : hit.payload.metadata.from,
-            to : hit.payload.metadata.to
-          },
-        })
-    );
-
-    console.log(docs)
+    console.log(docs);
 
     // 4️⃣ LLM chain
     const chain = loadQAChain(llm);
@@ -75,8 +76,11 @@ export const answerQuery = async (req, res, next) => {
           fileName: d.metadata.fileName,
           docId: d.metadata.docId,
           filePath: d.metadata.filePath,
-          totalPages : d.metadata.totalPages, 
-          pageNo : d.metadata.pageNo
+          totalPages: d.metadata.totalPages,
+          pageNo: d.metadata.pageNo,
+          from: d.metadata.from,
+          to: d.metadata.to,
+          ...d.metadata
         })),
       },
     });
