@@ -13,10 +13,15 @@ import {
   BarChart3,
   Clock,
   HardDrive,
-  Cpu
+  Cpu,
+  Shield,
+  AlertCircle,
+  Loader
 } from 'lucide-react';
-import { systemAPI, docsAPI } from '../../utils/api';
+import { systemAPI, docsAPI, authAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function AdminPage() {
   const [systemHealth, setSystemHealth] = useState(null);
@@ -28,6 +33,37 @@ export default function AdminPage() {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const router = useRouter();
+
+  // Check admin authentication
+  useEffect(() => {
+    checkAdminAuth();
+  }, []);
+
+  const checkAdminAuth = async () => {
+    try {
+      const response = await authAPI.getProfile();
+      const userData = response.data.user;
+      setUser(userData);
+      
+      // Check if user has admin role
+      if (!userData.role || (userData.role !== 'admin' && !userData.isAdmin)) {
+        toast.error('Access denied. Admin privileges required.');
+        router.push('/');
+        return;
+      }
+      
+      // Only fetch system data if user is admin
+      fetchSystemData();
+    } catch (error) {
+      toast.error('Please login to access admin panel');
+      router.push('/auth/login');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
 
   const fetchSystemData = async () => {
     try {
@@ -52,12 +88,35 @@ export default function AdminPage() {
     }
   };
 
-  useEffect(() => {
-    fetchSystemData();
-    // Set up auto-refresh every 30 seconds
-    const interval = setInterval(fetchSystemData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  // Show loading while checking auth
+  if (isAuthLoading) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <Loader className="text-primary animate-spin" size={48} />
+          <p className="text-muted mt-3">Verifying admin access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!user || (!user.role || (user.role !== 'admin' && !user.isAdmin))) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <Shield className="text-danger" size={64} />
+          <h4 className="text-light mt-3">Access Denied</h4>
+          <p className="text-muted">
+            Admin privileges required to access this page.
+          </p>
+          <Link href="/" className="btn btn-primary mt-3">
+            Go to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const handleRefresh = () => {
     setRefreshing(true);

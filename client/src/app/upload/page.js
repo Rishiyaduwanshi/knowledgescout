@@ -1,16 +1,63 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, FileText, X, CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import { docsAPI } from '../../utils/api';
+import { docsAPI, authAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function UploadPage() {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await authAPI.getProfile();
+      setUser(response.data.user);
+    } catch (error) {
+      toast.error('Please login to upload documents');
+      router.push('/auth/login');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <Loader className="text-primary animate-spin" size={48} />
+          <p className="text-muted mt-3">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <AlertCircle className="text-warning" size={64} />
+          <h4 className="text-light mt-3">Authentication Required</h4>
+          <p className="text-muted">Please login to upload documents.</p>
+          <Link href="/auth/login" className="btn btn-primary mt-3">
+            Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -52,8 +99,8 @@ export default function UploadPage() {
 
     setFiles(prev => [...prev, ...validFiles.map(file => ({
       file,
-      id: Math.random().toString(36).substr(2, 9),
-      status: 'ready', // ready, uploading, success, error
+      id: Math.random().toString(36).substring(2, 9),
+      status: 'ready',
       progress: 0,
       error: null
     }))]);

@@ -1,20 +1,43 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Trash2, Eye, Calendar, User, Download, RefreshCw } from 'lucide-react';
-import { docsAPI } from '../../utils/api';
+import { FileText, Trash2, Eye, Calendar, User, Download, RefreshCw, AlertCircle, Loader } from 'lucide-react';
+import { docsAPI, authAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function DocsPage() {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [pagination, setPagination] = useState({
     total: 0,
     limit: 10,
     offset: 0
   });
   const [deleting, setDeleting] = useState(null);
+  const router = useRouter();
+
+  // Check authentication
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await authAPI.getProfile();
+      setUser(response.data.user);
+      // Only fetch docs after auth check
+      fetchDocs();
+    } catch (error) {
+      toast.error('Please login to view documents');
+      router.push('/auth/login');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
 
   const fetchDocs = async (limit = 10, offset = 0) => {
     try {
@@ -34,9 +57,33 @@ export default function DocsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchDocs();
-  }, []);
+  // Show loading while checking auth
+  if (isAuthLoading) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <Loader className="text-primary animate-spin" size={48} />
+          <p className="text-muted mt-3">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!user) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <AlertCircle className="text-warning" size={64} />
+          <h4 className="text-light mt-3">Authentication Required</h4>
+          <p className="text-muted">Please login to view documents.</p>
+          <Link href="/auth/login" className="btn btn-primary mt-3">
+            Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const handleDelete = async (docId, fileName) => {
     if (!confirm(`Are you sure you want to delete "${fileName}"?`)) {

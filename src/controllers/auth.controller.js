@@ -21,7 +21,7 @@ const generateTokens = (userId) => {
 // Register
 export const register = async (req, res, next) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, role } = req.body;
 
     if (!email || !password) {
       throw new BadRequestError('Email and password are required');
@@ -34,8 +34,25 @@ export const register = async (req, res, next) => {
 
     // Use email as default name if name is not provided
     const userName = name || email.split('@')[0];
+    
+    // Check if this is the first user (make them admin automatically)
+    const userCount = await UserModel.countDocuments();
+    let userRole = 'user';
+    
+    if (userCount === 0) {
+      // First user is automatically admin
+      userRole = 'admin';
+    } else if (role === 'admin') {
+      // Only allow admin role if explicitly set (for subsequent admin creation)
+      userRole = 'admin';
+    }
 
-    const user = await UserModel.create({ email, password, name: userName });
+    const user = await UserModel.create({ 
+      email, 
+      password, 
+      name: userName, 
+      role: userRole 
+    });
     const tokens = generateTokens(user._id);
     await UserModel.updateRefreshToken(user._id, tokens.refreshToken);
 
@@ -131,6 +148,29 @@ export const logout = async (req, res, next) => {
 
     appResponse(res, {
       message: 'Logged out successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get Profile
+export const getProfile = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const user = await UserModel.findById(userId);
+    
+    if (!user) {
+      throw new UnauthorizedError('User not found');
+    }
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    delete userResponse.refreshToken;
+
+    appResponse(res, {
+      message: 'Profile retrieved successfully',
+      data: { user: userResponse },
     });
   } catch (error) {
     next(error);

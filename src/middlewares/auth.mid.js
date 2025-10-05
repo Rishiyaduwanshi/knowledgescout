@@ -11,7 +11,7 @@ export const authenticate = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, config.JWT_SECRET);
-    req.user = { id: decoded.id };
+    req.user = { id: decoded.id, role : 'user'};
 
     next();
   } catch (error) {

@@ -1,23 +1,73 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, MessageCircle, FileText, Loader, Bot, User, Copy, RefreshCw, ExternalLink } from 'lucide-react';
-import { askAPI } from '../../utils/api';
+import { Send, MessageCircle, FileText, Loader, Bot, User, Copy, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
+import { askAPI, authAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function AskPage() {
   const [query, setQuery] = useState('');
   const [conversation, setConversation] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState('');
+  const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const router = useRouter();
+
+  // Check authentication
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await authAPI.getProfile();
+      setUser(response.data.user);
+    } catch (error) {
+      toast.error('Please login to ask questions');
+      router.push('/auth/login');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
   const textareaRef = useRef(null);
 
   useEffect(() => {
     setSessionId(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
   }, []);
+
+  // Show loading while checking auth
+  if (isAuthLoading) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <Loader className="text-primary animate-spin" size={48} />
+          <p className="text-muted mt-3">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!user) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <AlertCircle className="text-warning" size={64} />
+          <h4 className="text-light mt-3">Authentication Required</h4>
+          <p className="text-muted">Please login to ask questions.</p>
+          <Link href="/auth/login" className="btn btn-primary mt-3">
+            Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

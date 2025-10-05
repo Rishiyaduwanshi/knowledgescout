@@ -95,7 +95,7 @@ export default function Navbar() {
 
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto">
-            {user && (
+            {!isLoading && (
               <>
                 <li className="nav-item">
                   <Link 
@@ -124,15 +124,18 @@ export default function Navbar() {
                     Ask Questions
                   </Link>
                 </li>
-                <li className="nav-item">
-                  <Link 
-                    href="/admin" 
-                    className={`nav-link d-flex align-items-center ${isActive('/admin') ? 'active' : ''}`}
-                  >
-                    <Settings className="me-1" size={18} />
-                    Admin
-                  </Link>
-                </li>
+                {/* Admin link - only show for admin users */}
+                {user && (user.role === 'admin' || user.isAdmin) && (
+                  <li className="nav-item">
+                    <Link 
+                      href="/admin" 
+                      className={`nav-link d-flex align-items-center ${isActive('/admin') ? 'active' : ''}`}
+                    >
+                      <Settings className="me-1" size={18} />
+                      Admin
+                    </Link>
+                  </li>
+                )}
               </>
             )}
           </ul>
