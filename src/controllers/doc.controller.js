@@ -6,6 +6,8 @@ import { config } from '../../config/index.js';
 import Doc from '../models/doc.model.js';
 import qdrant from '../../db/connectQdrant.js';
 import logger from '../utils/errorLogger.js';
+import { startWorker } from '../../worker.js';
+import { getQueueStatus, hasQueueItems } from '../utils/workerUtils.js';
 
 export const uploadDocs = async (req, res, next) => {
   try {
@@ -55,6 +57,15 @@ export const uploadDocs = async (req, res, next) => {
     });
 
     fs.writeFileSync(queueFile, JSON.stringify(queue, null, 2));
+
+    // Automatically start worker process after adding to queue
+    try {
+      await startWorker();
+      logger.info(`Worker started automatically after uploading ${req.file.originalname}`);
+    } catch (workerError) {
+      logger.error('Failed to start worker:', workerError);
+      // Don't fail the upload if worker start fails
+    }
 
     return appResponse(res, {
       message: `${req.file.originalname} uploaded and queued for processing.`,
@@ -114,7 +125,7 @@ export const getDoc = async (req, res, next) => {
 };
 
 export const deleteDoc = async (req, res, next) => {
-  console.log("ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd")
+
   try {
     console.log("i am here--------")
     const userId = req.user.id;
@@ -179,8 +190,6 @@ export const deleteAllDocs = async (req, res, next) => {
             },
           });
 
-          console.log(deleted);
-          console.log(deleted.status);
         } catch (err) {
           logger.error(`Qdrant delete failed: ${err}`);
         }
@@ -200,6 +209,24 @@ export const deleteAllDocs = async (req, res, next) => {
     return appResponse(res, {
       message: 'All documents deleted successfully',
       data: { deletedCount: docs.length },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getWorkerStatus = async (req, res, next) => {
+  try {
+    const queueStatus = getQueueStatus();
+    const hasItems = hasQueueItems();
+    
+    return appResponse(res, {
+      message: 'Worker status retrieved successfully',
+      data: {
+        queueStatus,
+        hasQueueItems: hasItems,
+        timestamp: new Date().toISOString()
+      },
     });
   } catch (err) {
     next(err);

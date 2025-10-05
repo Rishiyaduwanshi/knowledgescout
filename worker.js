@@ -30,7 +30,7 @@ const loadDocument = async (filePath) => {
   return loader.load();
 };
 
-export const processQueue = async () => {
+ const processQueue = async () => {
   if (!fs.existsSync(config.QUEUE_FILE)) return;
 
   let queueData = JSON.parse(fs.readFileSync(config.QUEUE_FILE, 'utf-8'));
@@ -119,9 +119,16 @@ export const processQueue = async () => {
 };
 
 let isProcessing = false;
+let workerInterval = null;
 
 const startWorker = async () => {
-  setInterval(async () => {
+  if (workerInterval) {
+    logger.info('Worker is already running');
+    return;
+  }
+  
+  logger.info('Starting worker process...');
+  workerInterval = setInterval(async () => {
     if (isProcessing) return;
     isProcessing = true;
     try {
@@ -132,4 +139,19 @@ const startWorker = async () => {
   }, 3000);
 };
 
-await processQueue();
+const stopWorker = () => {
+  if (workerInterval) {
+    clearInterval(workerInterval);
+    workerInterval = null;
+    logger.info('Worker stopped');
+  }
+};
+
+// Export functions for use in other modules
+export { startWorker, stopWorker, processQueue };
+
+// Auto-start if run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  await processQueue();
+  startWorker();
+}
