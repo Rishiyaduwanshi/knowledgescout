@@ -12,9 +12,9 @@ export default function Navbar() {
   const { user, isAuthenticated, isLoading, initAuth, logout, isAdmin } = useAuthStore();
 
   useEffect(() => {
-    // Initialize auth state on mount and route changes
+    // Initialize auth state only once on mount
     initAuth();
-  }, [pathname]);
+  }, []); // Empty dependency array for one-time initialization
 
   const handleLogout = async () => {
     await logout();

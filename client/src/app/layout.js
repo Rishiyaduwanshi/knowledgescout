@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "../components/Navbar";
+import ClientOnly from "../components/ClientOnly";
 import { Toaster } from "react-hot-toast";
 
 const inter = Inter({
@@ -14,9 +15,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-bs-theme="dark">
-      <body className={inter.className}>
-        <Navbar />
+    <html lang="en" data-bs-theme="dark" suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
+        <ClientOnly fallback={<div className="navbar navbar-dark bg-dark" style={{height: '76px'}}></div>}>
+          <Navbar />
+        </ClientOnly>
         <main className="container-fluid px-0">
           {children}
         </main>

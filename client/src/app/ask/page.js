@@ -15,11 +15,17 @@ export default function AskPage() {
   const [conversation, setConversation] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState('');
-  const [user, setUser] = useState(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
   const router = useRouter();
+  const { user, isAuthenticated, isLoading: isAuthLoading, initAuth } = useAuthStore();
 
+  // Helper function for scrolling (defined before useEffect)
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // ALL HOOKS MUST COME FIRST - NO CONDITIONAL RETURNS BEFORE ALL HOOKS ARE CALLED
   useEffect(() => {
     initAuth();
   }, []);
@@ -30,12 +36,16 @@ export default function AskPage() {
       router.push('/auth/login');
     }
   }, [isAuthLoading, isAuthenticated, router]);
-  const textareaRef = useRef(null);
 
   useEffect(() => {
     setSessionId(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
   }, []);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversation]);
+
+  // NOW we can do conditional rendering AFTER all hooks are called
   // Show loading while checking auth
   if (isAuthLoading) {
     return (
@@ -63,14 +73,6 @@ export default function AskPage() {
       </div>
     );
   }
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversation]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

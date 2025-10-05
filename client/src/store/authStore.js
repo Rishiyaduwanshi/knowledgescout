@@ -17,29 +17,39 @@ export const useAuthStore = create((set, get) => ({
 
   initAuth: async () => {
     const { isLoading } = get();
-    if (isLoading) return;
+    if (isLoading) {
+      console.log('initAuth: Already loading, skipping...');
+      return;
+    }
 
+    console.log('initAuth: Starting authentication check...');
     set({ isLoading: true });
     try {
       const response = await authAPI.getProfile();
+      console.log('initAuth response:', response);
       if (response.success && response.data.user) {
         set({
           user: response.data.user,
           isAuthenticated: true,
         });
+        console.log('User authenticated:', response.data.user);
       } else {
         set({
           user: null,
           isAuthenticated: false,
         });
+        console.log('No user found in response');
       }
     } catch (error) {
+      console.log('initAuth error:', error.message);
+      console.log('Error details:', error.response?.data || 'No response data');
       set({
         user: null,
         isAuthenticated: false,
       });
     } finally {
       set({ isLoading: false });
+      console.log('initAuth: Finished');
     }
   },
 
@@ -47,17 +57,21 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await authAPI.login(credentials);
+      console.log('Login response:', response);
       if (response.success && response.data.user) {
         set({
           user: response.data.user,
           isAuthenticated: true,
         });
+        console.log('Login successful, user set:', response.data.user);
         toast.success('Login successful!');
         return { success: true };
       } else {
+        console.log('Login failed - no user in response');
         throw new Error(response.message || 'Login failed');
       }
     } catch (error) {
+      console.log('Login error:', error);
       toast.error(
         error.response?.data?.message || error.message || 'Login failed'
       );

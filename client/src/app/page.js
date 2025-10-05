@@ -9,7 +9,6 @@ export default function Home() {
   const { user, isAuthenticated, initAuth } = useAuthStore();
 
   useEffect(() => {
-    // Initialize auth state from cookies
     initAuth();
   }, []);
 

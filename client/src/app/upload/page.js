@@ -16,6 +16,7 @@ export default function UploadPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, initAuth } = useAuthStore();
 
+  // ALL HOOKS MUST COME FIRST - NO CONDITIONAL RETURNS BEFORE ALL HOOKS ARE CALLED
   useEffect(() => {
     initAuth();
   }, []);
@@ -27,6 +28,7 @@ export default function UploadPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
+  // NOW we can do conditional rendering AFTER all hooks are called
   // Show loading while checking auth
   if (isLoading) {
     return (

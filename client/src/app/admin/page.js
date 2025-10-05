@@ -34,9 +34,8 @@ export default function AdminPage() {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [user, setUser] = useState(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const router = useRouter();
+  const { user, isAuthenticated, isLoading: isAuthLoading, initAuth, isAdmin } = useAuthStore();
 
   useEffect(() => {
     initAuth();

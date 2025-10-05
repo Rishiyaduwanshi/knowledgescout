@@ -11,8 +11,6 @@ import { useRouter } from 'next/navigation';
 export default function DocsPage() {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [pagination, setPagination] = useState({
     total: 0,
     limit: 10,
@@ -20,6 +18,7 @@ export default function DocsPage() {
   });
   const [deleting, setDeleting] = useState(null);
   const router = useRouter();
+  const { user, isAuthenticated, isLoading: isAuthLoading, initAuth } = useAuthStore();
 
   useEffect(() => {
     initAuth();
