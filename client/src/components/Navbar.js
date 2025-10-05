@@ -1,28 +1,43 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { FileText, MessageCircleQuestion, Upload, Settings, LogOut, User } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { FileText, MessageCircleQuestion, Upload, Settings, LogOut, User, ExternalLink, Github, Globe } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { authAPI } from '../utils/api';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
+    checkAuthStatus();
+  }, [pathname]); // Re-check on route change
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    window.location.href = '/auth/login';
+  const checkAuthStatus = async () => {
+    try {
+      const response = await authAPI.getProfile();
+      setUser(response.data.user);
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+      setUser(null);
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force logout even if API fails
+      setUser(null);
+      router.push('/auth/login');
+    }
   };
 
   const isActive = (path) => pathname === path;
@@ -34,6 +49,40 @@ export default function Navbar() {
           <FileText className="me-2" size={24} />
           <span className="fw-bold">KnowledgeScout</span>
         </Link>
+
+        {/* Developer Links - Top Right */}
+        <div className="d-none d-lg-flex align-items-center gap-2 me-3">
+          <a 
+            href="https://iamabhinav.dev" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn btn-outline-info btn-sm d-flex align-items-center gap-1"
+            title="Portfolio"
+          >
+            <Globe size={14} />
+            <span className="small">Portfolio</span>
+          </a>
+          <a 
+            href="https://blog.iamabhinav.dev" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn btn-outline-success btn-sm d-flex align-items-center gap-1"
+            title="Blog"
+          >
+            <ExternalLink size={14} />
+            <span className="small">Blog</span>
+          </a>
+          <a 
+            href="https://github.com/rishiyaduwanshi/knowledgescout" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn btn-outline-light btn-sm d-flex align-items-center gap-1"
+            title="GitHub Repository"
+          >
+            <Github size={14} />
+            <span className="small">GitHub</span>
+          </a>
+        </div>
 
         <button 
           className="navbar-toggler" 
@@ -89,7 +138,11 @@ export default function Navbar() {
           </ul>
 
           <ul className="navbar-nav">
-            {user ? (
+            {isLoading ? (
+              <li className="nav-item">
+                <span className="nav-link">Loading...</span>
+              </li>
+            ) : user ? (
               <li className="nav-item dropdown">
                 <button 
                   className="nav-link dropdown-toggle btn btn-link text-light text-decoration-none d-flex align-items-center" 

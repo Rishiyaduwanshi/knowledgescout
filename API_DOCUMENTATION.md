@@ -15,7 +15,7 @@ Authorization: Bearer <your_jwt_token>
 
 ### 1. Register User
 ```bash
-curl -X POST http://localhost:3030/api/v1/auth/register \
+curl -X POST http://localhost:3030/api/v1/auth/signup \
   -H "Content-Type: application/json" \
   -d '{
     "username": "testuser",
@@ -26,7 +26,7 @@ curl -X POST http://localhost:3030/api/v1/auth/register \
 
 ### 2. Login User
 ```bash
-curl -X POST http://localhost:3030/api/v1/auth/login \
+curl -X POST http://localhost:3030/api/v1/auth/signin \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
