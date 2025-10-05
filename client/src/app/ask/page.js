@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, MessageCircle, FileText, Loader, Bot, User, Copy, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
-import { askAPI, authAPI } from '../../utils/api';
+import { askAPI } from '../../utils/api';
+import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -19,22 +20,16 @@ export default function AskPage() {
   const messagesEndRef = useRef(null);
   const router = useRouter();
 
-  // Check authentication
   useEffect(() => {
-    checkAuth();
+    initAuth();
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      const response = await authAPI.getProfile();
-      setUser(response.data.user);
-    } catch (error) {
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
       toast.error('Please login to ask questions');
       router.push('/auth/login');
-    } finally {
-      setIsAuthLoading(false);
     }
-  };
+  }, [isAuthLoading, isAuthenticated, router]);
   const textareaRef = useRef(null);
 
   useEffect(() => {

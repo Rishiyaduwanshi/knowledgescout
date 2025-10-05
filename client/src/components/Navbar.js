@@ -3,41 +3,22 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FileText, MessageCircleQuestion, Upload, Settings, LogOut, User, ExternalLink, Github, Globe } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { authAPI } from '../utils/api';
+import { useEffect } from 'react';
+import { useAuthStore } from '../store/authStore';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isAuthenticated, isLoading, initAuth, logout, isAdmin } = useAuthStore();
 
   useEffect(() => {
-    checkAuthStatus();
-  }, [pathname]); // Re-check on route change
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await authAPI.getProfile();
-      setUser(response.data.user);
-    } catch (error) {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Initialize auth state on mount and route changes
+    initAuth();
+  }, [pathname]);
 
   const handleLogout = async () => {
-    try {
-      await authAPI.logout();
-      setUser(null);
-      router.push('/auth/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Force logout even if API fails
-      setUser(null);
-      router.push('/auth/login');
-    }
+    await logout();
+    router.push('/auth/login');
   };
 
   const isActive = (path) => pathname === path;
@@ -125,7 +106,7 @@ export default function Navbar() {
                   </Link>
                 </li>
                 {/* Admin link - only show for admin users */}
-                {user && (user.role === 'admin' || user.isAdmin) && (
+                {isAdmin() && (
                   <li className="nav-item">
                     <Link 
                       href="/admin" 

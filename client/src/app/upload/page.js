@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Upload, FileText, X, CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import { docsAPI, authAPI } from '../../utils/api';
+import { docsAPI } from '../../utils/api';
+import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -11,26 +12,20 @@ export default function UploadPage() {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef(null);
   const router = useRouter();
+  const { user, isAuthenticated, isLoading, initAuth } = useAuthStore();
 
   useEffect(() => {
-    checkAuth();
+    initAuth();
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      const response = await authAPI.getProfile();
-      setUser(response.data.user);
-    } catch (error) {
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
       toast.error('Please login to upload documents');
       router.push('/auth/login');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [isLoading, isAuthenticated, router]);
 
   // Show loading while checking auth
   if (isLoading) {

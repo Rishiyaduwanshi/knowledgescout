@@ -2,17 +2,15 @@
 
 import Link from 'next/link';
 import { FileText, Upload, MessageCircleQuestion, BarChart3, Shield, Zap, Settings } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useAuthStore } from '../store/authStore';
 
 export default function Home() {
-  const [user, setUser] = useState(null);
+  const { user, isAuthenticated, initAuth } = useAuthStore();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-    }
+    // Initialize auth state from cookies
+    initAuth();
   }, []);
 
   return (

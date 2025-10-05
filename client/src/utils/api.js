@@ -23,8 +23,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Let zustand store handle 401 errors through auth methods
     if (error.response?.status === 401 && !error.config.url.includes('/auth/')) {
-      localStorage.removeItem('user');
+      // Import store dynamically to avoid circular dependencies
+      import('../store/authStore').then(({ useAuthStore }) => {
+        const store = useAuthStore.getState();
+        store.clearAuth();
+      });
     }
     return Promise.reject(error);
   }

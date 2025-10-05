@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { FileText, Trash2, Eye, Calendar, User, Download, RefreshCw, AlertCircle, Loader } from 'lucide-react';
-import { docsAPI, authAPI } from '../../utils/api';
+import { docsAPI } from '../../utils/api';
+import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -20,24 +21,20 @@ export default function DocsPage() {
   const [deleting, setDeleting] = useState(null);
   const router = useRouter();
 
-  // Check authentication
   useEffect(() => {
-    checkAuth();
+    initAuth();
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      const response = await authAPI.getProfile();
-      setUser(response.data.user);
-      // Only fetch docs after auth check
-      fetchDocs();
-    } catch (error) {
-      toast.error('Please login to view documents');
-      router.push('/auth/login');
-    } finally {
-      setIsAuthLoading(false);
+  useEffect(() => {
+    if (!isAuthLoading) {
+      if (!isAuthenticated) {
+        toast.error('Please login to view documents');
+        router.push('/auth/login');
+      } else {
+        fetchDocs();
+      }
     }
-  };
+  }, [isAuthLoading, isAuthenticated, router]);
 
   const fetchDocs = async (limit = 10, offset = 0) => {
     try {

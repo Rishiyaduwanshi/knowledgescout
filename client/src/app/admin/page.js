@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Loader
 } from 'lucide-react';
-import { systemAPI, docsAPI, authAPI } from '../../utils/api';
+import { systemAPI, docsAPI } from '../../utils/api';
+import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -37,19 +38,19 @@ export default function AdminPage() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const router = useRouter();
 
-  // Check admin authentication
   useEffect(() => {
-    checkAdminAuth();
+    initAuth();
   }, []);
 
-  const checkAdminAuth = async () => {
-    try {
-      const response = await authAPI.getProfile();
-      const userData = response.data.user;
-      setUser(userData);
+  useEffect(() => {
+    if (!isAuthLoading) {
+      if (!isAuthenticated) {
+        toast.error('Please login to access admin panel');
+        router.push('/auth/login');
+        return;
+      }
       
-      // Check if user has admin role
-      if (!userData.role || (userData.role !== 'admin' && !userData.isAdmin)) {
+      if (!isAdmin()) {
         toast.error('Access denied. Admin privileges required.');
         router.push('/');
         return;
@@ -57,13 +58,8 @@ export default function AdminPage() {
       
       // Only fetch system data if user is admin
       fetchSystemData();
-    } catch (error) {
-      toast.error('Please login to access admin panel');
-      router.push('/auth/login');
-    } finally {
-      setIsAuthLoading(false);
     }
-  };
+  }, [isAuthLoading, isAuthenticated, router]);
 
   const fetchSystemData = async () => {
     try {

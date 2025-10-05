@@ -4,8 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Mail, Lock, User } from 'lucide-react';
-import { authAPI } from '../../../utils/api';
-import toast from 'react-hot-toast';
+import { useAuthStore } from '../../../store/authStore';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -14,7 +13,7 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: ''
   });
-  const [loading, setLoading] = useState(false);
+  const { register, isLoading } = useAuthStore();
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -32,19 +31,10 @@ export default function RegisterPage() {
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const { confirmPassword, ...registerData } = formData;
-      const response = await authAPI.register(registerData);
-      
-      toast.success('Registration successful! Please login.');
+    const { confirmPassword, ...registerData } = formData;
+    const result = await register(registerData);
+    if (result.success) {
       router.push('/auth/login');
-    } catch (error) {
-      console.error('Registration error:', error);
-      toast.error(error.response?.data?.message || 'Registration failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -132,14 +122,14 @@ export default function RegisterPage() {
                 <button 
                   type="submit" 
                   className="btn btn-primary w-100 mb-3"
-                  disabled={loading}
+                  disabled={isLoading}
                 >
-                  {loading ? (
+                  {isLoading ? (
                     <span className="spinner-border spinner-border-sm me-2" />
                   ) : (
                     <UserPlus className="me-2" size={16} />
                   )}
-                  {loading ? 'Creating Account...' : 'Create Account'}
+                  {isLoading ? 'Creating Account...' : 'Create Account'}
                 </button>
               </form>
               

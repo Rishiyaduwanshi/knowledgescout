@@ -4,15 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LogIn, Mail, Lock } from 'lucide-react';
-import { authAPI } from '../../../utils/api';
-import toast from 'react-hot-toast';
+import { useAuthStore } from '../../../store/authStore';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-  const [loading, setLoading] = useState(false);
+  const { login, isLoading } = useAuthStore();
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -24,22 +23,10 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await authAPI.login(formData);
-      
-      // Store token and user data
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      toast.success('Login successful!');
+    
+    const result = await login(formData);
+    if (result.success) {
       router.push('/');
-    } catch (error) {
-      console.error('Login error:', error);
-      toast.error(error.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -93,14 +80,14 @@ export default function LoginPage() {
                 <button 
                   type="submit" 
                   className="btn btn-primary w-100 mb-3"
-                  disabled={loading}
+                  disabled={isLoading}
                 >
-                  {loading ? (
+                  {isLoading ? (
                     <span className="spinner-border spinner-border-sm me-2" />
                   ) : (
                     <LogIn className="me-2" size={16} />
                   )}
-                  {loading ? 'Signing In...' : 'Sign In'}
+                  {isLoading ? 'Signing In...' : 'Sign In'}
                 </button>
               </form>
               
