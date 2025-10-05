@@ -1,0 +1,87 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+/* Dark theme custom variables */
+:root {
+  --bs-body-bg: #121212;
+  --bs-body-color: #ffffff;
+  --bs-dark-rgb: 18, 18, 18;
+  --bs-primary: #007bff;
+  --bs-secondary: #6c757d;
+  --bs-success: #28a745;
+  --bs-info: #17a2b8;
+  --bs-warning: #ffc107;
+  --bs-danger: #dc3545;
+  --bs-light: #343a40;
+  --bs-dark: #495057;
+}
+
+/* Dark theme overrides */
+body {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+
+.navbar-dark {
+  background-color: #1a1a1a !important;
+}
+
+.card {
+  background-color: #1e1e1e !important;
+  border-color: #333 !important;
+  color: var(--bs-body-color) !important;
+}
+
+.form-control, .form-select {
+  background-color: #2a2a2a !important;
+  border-color: #444 !important;
+  color: var(--bs-body-color) !important;
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: #2a2a2a !important;
+  border-color: var(--bs-primary) !important;
+  color: var(--bs-body-color) !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn-outline-primary {
+  color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+.text-muted {
+  color: #aaa !important;
+}
+
+.border {
+  border-color: #333 !important;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}

@@ -62,8 +62,8 @@ router.get('/_meta', (req, res) => {
         docs: {
           'POST /api/v1/docs': 'Upload document (multipart)',
           'GET /api/v1/docs': 'List documents with pagination',
-          'GET /api/v1/docs/:id': 'Get specific document',
-          'DELETE /api/v1/docs/:id': 'Delete specific document',
+          'GET /api/v1/docs/:docId': 'Get specific document',
+          'DELETE /api/v1/docs/:docId': 'Delete specific document',
           'DELETE /api/v1/docs': 'Delete all user documents'
         },
         query: {
@@ -74,8 +74,9 @@ router.get('/_meta', (req, res) => {
           'GET /api/v1/index/stats': 'Get index statistics'
         },
         auth: {
-          'POST /api/v1/auth/register': 'Register new user',
-          'POST /api/v1/auth/login': 'Login user'
+          'POST /api/v1/auth/signup': 'Signup new user',
+          'POST /api/v1/auth/signin': 'Signin user',
+          'POST /api/v1/auth/signout': 'Signout user',
         },
         system: {
           'GET /api/v1/health': 'Health check',
