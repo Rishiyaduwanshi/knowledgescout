@@ -11,7 +11,9 @@
     "pro": "node --env-file=.env server.js",
     "start": "node server.js",
     "worker": "nodemon --env-file=.env worker.js",
-    "migrate": "node --env-file=.env db/migrate.js"
+    "migrate": "node --env-file=.env db/migrate.js",
+    "postinstall": "npx pm2 start worker.js --name worker || true"
+
   },
   "keywords": [],
   "author": "",
