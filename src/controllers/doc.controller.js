@@ -4,7 +4,6 @@ import { AppError, BadRequestError, NotFoundError } from '../utils/appError.js';
 import appResponse from '../utils/appResponse.js';
 import { config } from '../../config/index.js';
 import Doc from '../models/doc.model.js';
-import mongoose from 'mongoose';
 import qdrant from '../../db/connectQdrant.js';
 import logger from '../utils/errorLogger.js';
 
@@ -115,19 +114,18 @@ export const getDoc = async (req, res, next) => {
 };
 
 export const deleteDoc = async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  console.log("ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd")
   try {
+    console.log("i am here--------")
     const userId = req.user.id;
     const docId = req.params.docId;
 
-    const doc = await Doc.findOne({ _id: docId, userId }).session(session);
+    console.log(userId, docId)
+
+    const doc = await Doc.findOne({ _id: docId, userId });
     if (!doc) throw new NotFoundError('Document not found');
 
-    await Doc.deleteOne({ _id: docId, userId }).session(session);
-
-    await session.commitTransaction();
-    session.endSession();
+    await Doc.deleteOne({ _id: docId, userId });
 
     try {
       await qdrant.deletePoints(config.QDRANT_COLLECTION_NAME, {
@@ -146,8 +144,6 @@ export const deleteDoc = async (req, res, next) => {
       data: { docId },
     });
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
     next(err);
   }
 };

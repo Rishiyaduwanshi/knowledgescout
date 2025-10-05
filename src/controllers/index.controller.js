@@ -3,7 +3,7 @@ import { config } from '../../config/index.js';
 import appResponse from '../utils/appResponse.js';
 import Doc from '../models/doc.model.js';
 import fs from 'fs';
-import { processQueue } from '../../worker.js';
+// import { processQueue } from '../../worker.js';
 
 const qdrant = new QdrantClient({
   url: config.QDRANT_URL,
@@ -14,7 +14,6 @@ export const rebuildIndex = async (req, res, next) => {
   try {
     const userId = req.user.id;
     
-    // Clear existing index for user
     try {
       await qdrant.delete(config.QDRANT_COLLECTION_NAME, {
         filter: {
@@ -25,13 +24,11 @@ export const rebuildIndex = async (req, res, next) => {
       console.log('Error clearing existing index:', error.message);
     }
 
-    // Mark all user docs as pending for reprocessing
     await Doc.updateMany(
       { userId }, 
       { status: 'pending', error: null }
     );
 
-    // Add all docs back to queue
     const docs = await Doc.find({ userId, status: 'pending' });
     const queueFile = config.QUEUE_FILE;
     
@@ -45,7 +42,6 @@ export const rebuildIndex = async (req, res, next) => {
       }
     }
 
-    // Add docs to queue
     docs.forEach(doc => {
       queue.push({
         docId: doc._id,
@@ -59,7 +55,6 @@ export const rebuildIndex = async (req, res, next) => {
 
     fs.writeFileSync(queueFile, JSON.stringify(queue, null, 2));
 
-    // Trigger immediate processing
     setImmediate(() => {
       processQueue().catch(err => console.error('Queue processing error:', err));
     });
@@ -80,14 +75,12 @@ export const getIndexStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    // Get document stats from MongoDB
     const totalDocs = await Doc.countDocuments({ userId });
     const pendingDocs = await Doc.countDocuments({ userId, status: 'pending' });
     const processingDocs = await Doc.countDocuments({ userId, status: 'processing' });
     const completedDocs = await Doc.countDocuments({ userId, status: 'completed' });
     const failedDocs = await Doc.countDocuments({ userId, status: 'failed' });
 
-    // Get Qdrant collection stats
     let qdrantStats = null;
     try {
       const collectionInfo = await qdrant.getCollection(config.QDRANT_COLLECTION_NAME);
@@ -100,7 +93,6 @@ export const getIndexStats = async (req, res, next) => {
       qdrantStats = { error: 'Unable to fetch Qdrant stats' };
     }
 
-    // Get user-specific point count from Qdrant
     let userPointCount = 0;
     try {
       const scrollResult = await qdrant.scroll(config.QDRANT_COLLECTION_NAME, {
@@ -109,7 +101,6 @@ export const getIndexStats = async (req, res, next) => {
         with_payload: false,
         with_vectors: false
       });
-      // This is a rough estimate - for exact count we'd need to scroll through all
       userPointCount = scrollResult.points.length > 0 ? 'Available' : 0;
     } catch (error) {
       userPointCount = 'Unknown';

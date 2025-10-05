@@ -21,7 +21,6 @@ export const answerQuery = async (req, res, next) => {
     
     if (!query) throw new BadRequestError('query is required');
     
-    // Check cache first
     const cacheKey = `${userId}:${query.toLowerCase().trim()}:${limit}`;
     const cachedResult = getCachedQuery(cacheKey);
     if (cachedResult) {
@@ -31,24 +30,24 @@ export const answerQuery = async (req, res, next) => {
       });
     }
 
-    // 1️⃣ Embed query
     const queryVector = await embeddingModel.embedQuery(query);
 
-    console.log('qury vetor -> ', queryVector);
-
-    console.log('i am here 1-------');
-
-    // 2️⃣ Retrieve top-k chunks from Qdrant
-    const searchResult = await qdrant.query(config.QDRANT_COLLECTION_NAME, {
-      query: queryVector,
-      limit: limit,
+    const searchResult = await qdrant.search(config.QDRANT_COLLECTION_NAME, {
+      vector: queryVector,
+      limit: limit * 2, 
       with_payload: true,
-      filter: { must: [{ key: 'userId', match: { value: userId.toString() } }] },
     });
+    
+    const filteredResults = searchResult.filter(hit => 
+      hit.payload && hit.payload.userId === userId
+    ).slice(0, limit);
 
-    if (!searchResult.points.length) {
+    console.log("searchResult-------------",searchResult.length, "results")
+    console.log("filteredResults-------------",filteredResults.length, "results")
+
+    if (!filteredResults.length) {
       console.log('inside this ----------> ');
-      console.log(typeof searchResult);
+      console.log(typeof filteredResults);
 
       return appResponse(res, {
         message: 'No relevant answer found',
@@ -56,7 +55,7 @@ export const answerQuery = async (req, res, next) => {
       });
     }
 
-    const docs = searchResult.points.map((hit) => {
+    const docs = filteredResults.map((hit) => {
       console.log("Hit payload:", JSON.stringify(hit.payload, null, 2));
       return new Document({
         pageContent: hit.payload.pageContent || hit.payload.text || 'No content available',
