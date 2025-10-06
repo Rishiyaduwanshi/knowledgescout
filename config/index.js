@@ -1,66 +1,84 @@
-import { AppError } from '../src/utils/appError.js';
+import { z } from 'zod';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { AppError } from '../src/utils/appError.js';
 
+// ===== Get package.json version =====
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 const packageJsonPath = join(__dirname, '../package.json');
 const packageJsonData = readFileSync(packageJsonPath, 'utf-8');
 const { version } = JSON.parse(packageJsonData);
-const PORT = process.env.PORT ?? 4040;
 
-// ====== App Config ======
-const appConfig = {
-  MONGO_URI: process.env.MONGO_URI ,
-  PORT,
-  NODE_ENV: process.env.NODE_ENV,
-  APP_URL: process.env.APP_URL ?? `http://localhost:${PORT}`,
-  APP_NAME: process.env.APP_NAME ,
-  VERSION: version,
-  QUEUE_FILE : process.env.QUEUE_FILE,
-  UPLOAD_DIR : process.env.UPLOAD_DIR
-};
+const envSchema = z.object({
+  // App Config
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
+  PORT: z.string().transform((val) => {
+    const num = Number(val);
+    if (Number.isNaN(num)) throw new Error('PORT must be a number');
+    return num;
+  }),
+  MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
+  APP_URL: z.string().url(),
+  APP_NAME: z.string().min(1, 'APP_NAME is required'),
+  VERSION: z.string().default(version),
+  QUEUE_FILE: z.string().min(1, 'QUEUE_FILE is required'),
+  UPLOAD_DIR: z.string().min(1, 'UPLOAD_DIR is required'),
 
-// ====== LLM Config ======
-const llmConfig = {
-  MODEL_PROVIDER: process.env.MODEL_PROVIDER ??  new AppError({message : "No model provider is provided"}),
+  // LLM Config
+  MODEL_PROVIDER: z.string().min(1, 'MODEL_PROVIDER is required'),
+  GROQ_API_KEY: z.string().min(1, 'GROQ_API_KEY is required'),
+  GROQ_MODEL: z.string().min(1, 'GROQ_MODEL is required'),
+  HUGGINGFACE_API_KEY: z.string().min(1, 'HUGGINGFACE_API_KEY is required'),
+  HUGGINGFACE_MODEL: z.string().min(1, 'HUGGINGFACE_MODEL is required'),
 
-  // Groq Config
-  GROQ_API_KEY: process.env.GROQ_API_KEY ?? 'Groq api key not provided',
-  GROQ_MODEL: process.env.GROQ_MODEL ?? 'Groq model not provided',
+  // DB Config
+  QDRANT_URL: z.string().min(1, 'QDRANT_URL is required'),
+  QDRANT_API_KEY: z.string().optional(),
+  QDRANT_COLLECTION_NAME: z
+    .string()
+    .min(1, 'QDRANT_COLLECTION_NAME is required'),
 
-  HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY ?? 'Huggingface api key not provided',
-  HUGGINGFACE_MODEL: process.env.HUGGINGFACE_MODEL ?? 'Huggingface model not provided',
-};
+  // JWT Config
+  JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
+  JWT_EXPIRY: z.string().min(1, 'JWT_EXPIRY is required'),
+  JWT_REFRESH_SECRET: z.string().min(1, 'JWT_REFRESH_SECRET is required'),
+  JWT_REFRESH_EXPIRY: z.string().min(1, 'JWT_REFRESH_EXPIRY is required'),
 
-// ====== DB Config ======
-const dbConfig = {
-  MONGO_URI: process.env.MONGO_URI ?? 'mongodb://localhost:27017/knowledgescout',
-  QDRANT_URL : process.env.QDRANT_URL,
-  QDRANT_API_KEY : process.env.QDRANT_API_KEY,
-  QDRANT_COLLECTION_NAME : process.env.QDRANT_COLLECTION_NAME,
+  // Allowed Origins
+  ALLOWED_ORIGINS: z
+    .string()
+    .transform((val) => val.split(',').map((v) => v.trim())),
+
+  // Rate Limiting Config
+  GLOBAL_RATE_LIMIT_MAX: z
+    .string()
+    .transform((val) => parseInt(val))
+    .default('100'),
+  PER_IP_RATE_LIMIT_MAX: z
+    .string()
+    .transform((val) => parseInt(val))
+    .default('10'),
+});
+
+const parsedEnv = envSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  console.error('❌ Invalid environment variables detected:');
+  console.error(parsedEnv.error.format());
+  process.exit(1);
 }
 
-// ====== JWT Config ======
-const jwtConfig = {
-  JWT_SECRET: process.env.JWT_SECRET ?? 'secret',
-  JWT_EXPIRY: process.env.JWT_EXPIRY ?? '1d',
-  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ?? 'secret',
-  JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY ?? '7d',
-};
-
-// ====== Allowed Origins Config ======
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173'];
-
-// ====== Rate Limiting Config ======
-const rateLimitConfig = {
+// ===== Build final config object =====
+export const config = Object.freeze({
+  ...parsedEnv.data,
+  PORT: parsedEnv.data.PORT,
   GLOBAL_RATE_LIMIT_CONFIG: {
     windowMs: 60 * 1000,
-    max: parseInt(process.env.GLOBAL_RATE_LIMIT_MAX || '100'),
+    max: parsedEnv.data.GLOBAL_RATE_LIMIT_MAX,
     keyGenerator: () => 'global',
     handler: (_, __) => {
       throw new AppError({
@@ -71,21 +89,14 @@ const rateLimitConfig = {
   },
   PER_IP_RATE_LIMIT_CONFIG: {
     windowMs: 60 * 1000,
-    max: parseInt(process.env.PER_IP_RATE_LIMIT_MAX ?? '') || 10,
+    max: parsedEnv.data.PER_IP_RATE_LIMIT_MAX,
     handler: (_, __) => {
-      throw new AppError({
+       throw new AppError({
         message: 'Too many requests from this IP, please try again later.',
         statusCode: 429,
       });
     },
   },
-};
-
-export const config = Object.freeze({
-  ...appConfig,
-  ...jwtConfig,
-  ...rateLimitConfig,
-  ...llmConfig,
-  ...dbConfig,
-  ALLOWED_ORIGINS,
 });
+
+export default config;

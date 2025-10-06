@@ -58,6 +58,7 @@ router.get('/_meta', (req, res) => {
       environment: config.NODE_ENV,
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
+      frontend : config.ALLOWED_ORIGINS,
       endpoints: {
         docs: {
           'POST /api/v1/docs': 'Upload document (multipart)',
